@@ -8,7 +8,11 @@ import firefliesVertexShader from './shaders/fireflies/vertex.glsl'
 import firefliesFragmentShader from './shaders/fireflies/fragment.glsl'
 import portalVertexShader from './shaders/portal/vertex.glsl'
 import portalFragmentShader from './shaders/portal/fragment.glsl'
+import waterVertexShader from './shaders/water/vertex.glsl'
+import waterFragmentShader from './shaders/water/fragment.glsl'
 
+console.log(waterFragmentShader)
+console.log(waterVertexShader)
 
 /**
  * Base
@@ -25,6 +29,7 @@ const canvas = document.querySelector('canvas.webgl')
 
 // Scene
 const scene = new THREE.Scene()
+
 
 /**
  * Loaders
@@ -69,6 +74,22 @@ const portalLightMaterial = new THREE.ShaderMaterial({
     fragmentShader: portalFragmentShader
 })
 
+// Color
+debugObject.depthColor = '#186691'
+debugObject.surfaceColor = '#9bd8ff'
+
+// Water Material
+const waterMaterial = new THREE.ShaderMaterial({
+    uniforms:
+    {
+        uTime: { value: 0 },
+        uColorStart: { value: new THREE.Color(0x000000)},
+        uColorEnd: { value: new THREE.Color(0xffffff)}
+    },
+    vertexShader: waterVertexShader,
+    fragmentShader: waterFragmentShader,
+
+})
 
 /**
  * Model
@@ -97,7 +118,7 @@ gltfLoader.load(
         poleLightAMesh.material = poleLightMaterial
         poleLightBMesh.material = poleLightMaterial
         portalLightMesh.material = portalLightMaterial
-        water.material = portalLightMaterial
+        water.material = waterMaterial
         windowLight.material = portalLightMaterial
 
         scene.add(gltf.scene)
@@ -109,7 +130,7 @@ gltfLoader.load(
  */
 // Geometry
 const firefliesGeometry = new THREE.BufferGeometry()
-const firefliesCount = 20
+const firefliesCount = 40
 const firefliesPosition = new Float32Array(firefliesCount * 3)
 const firefliesScale = new Float32Array(firefliesCount)
 
@@ -117,9 +138,9 @@ const firefliesScale = new Float32Array(firefliesCount)
 
 for(let i = 0; i < firefliesCount; i++)
 {
-    firefliesPosition[i * 3 + 0] = (Math.random() - 0.5) * 4
+    firefliesPosition[i * 3 + 0] = (Math.random() - 0.5) * 10
     firefliesPosition[i * 3 + 1] = Math.random() * 1.5
-    firefliesPosition[i * 3 + 2] = (Math.random() - 0.5) * 4
+    firefliesPosition[i * 3 + 2] = (Math.random() - 0.5) * 10
 
     firefliesScale[i] = Math.random()
 }
@@ -211,6 +232,12 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.outputEncoding = THREE.sRGBEncoding
 
 debugObject.clearColor = '#292929'
+debugObject.fogColor = '#292929'
+debugObject.fogMinDistance = 1
+debugObject.fogMaxDistance = 15
+const sceneFog = new THREE.Fog(debugObject.fogColor, debugObject.fogMinDistance, debugObject.fogMaxDistance)
+scene.fog = sceneFog
+
 renderer.setClearColor(debugObject.clearColor)
 gui
     .addColor(debugObject, 'clearColor')
@@ -218,6 +245,13 @@ gui
     {
         renderer.setClearColor(debugObject.clearColor)
     })
+gui
+    .addColor(debugObject, 'fogColor').name('fogColor')
+    .onChange(() =>
+    {
+        sceneFog.color = new THREE.Color(debugObject.fogColor)
+    })
+gui.add(sceneFog, 'near').min(-15).max(15).step(0.1).name('Fog coverage')
 
 /**
  * Animate
@@ -231,6 +265,7 @@ const tick = () =>
     // Update material
     fireflies.material.uniforms.uTime.value = elapsedTime
     portalLightMaterial.uniforms.uTime.value = elapsedTime
+    waterMaterial.uniforms.uTime.value = elapsedTime
 
     // Update controls
     controls.update()
