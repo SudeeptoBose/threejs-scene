@@ -10,9 +10,13 @@ import portalVertexShader from './shaders/portal/vertex.glsl'
 import portalFragmentShader from './shaders/portal/fragment.glsl'
 import waterVertexShader from './shaders/water/vertex.glsl'
 import waterFragmentShader from './shaders/water/fragment.glsl'
+import windowVertexShader from './shaders/window/vertex.glsl'
+import windowFragmentShader from './shaders/window/fragment.glsl'
 
-console.log(waterFragmentShader)
-console.log(waterVertexShader)
+// console.log(waterFragmentShader)
+// console.log(waterVertexShader)
+// console.log(windowFragmentShader)
+// console.log(windowVertexShader)
 
 /**
  * Base
@@ -60,7 +64,8 @@ bakedTexture.encoding = THREE.sRGBEncoding
 const bakedMaterial = new THREE.MeshBasicMaterial({ map: bakedTexture })
 
 // Pole light Material
-const poleLightMaterial = new THREE.MeshBasicMaterial({color: 0xABDAFF})
+debugObject.poleLightColor = 0xABDAFF
+const poleLightMaterial = new THREE.MeshBasicMaterial({color: debugObject.poleLightColor})
 
 // Portal light Material
 const portalLightMaterial = new THREE.ShaderMaterial({
@@ -74,21 +79,29 @@ const portalLightMaterial = new THREE.ShaderMaterial({
     fragmentShader: portalFragmentShader
 })
 
-// Color
-debugObject.depthColor = '#186691'
-debugObject.surfaceColor = '#9bd8ff'
-
 // Water Material
 const waterMaterial = new THREE.ShaderMaterial({
     uniforms:
     {
         uTime: { value: 0 },
-        uColorStart: { value: new THREE.Color(0x000000)},
-        uColorEnd: { value: new THREE.Color(0xffffff)}
+        uWaterSpeedMultiplier: { value: 0.2 },
+        uWaterPattern: { value: 5.0},
+        uWaterColorStart: {value : new THREE.Color(0x004875)},
+        uWaterColorEnd: {value : new THREE.Color(0x141414)}
     },
     vertexShader: waterVertexShader,
     fragmentShader: waterFragmentShader,
 
+})
+
+// Window Material
+const windowMaterial = new THREE.ShaderMaterial({
+    uniforms:
+    {
+        uColor: { value : new THREE.Color(0xffffff)}
+    },
+    vertexShader: windowVertexShader,
+    fragmentShader: windowFragmentShader
 })
 
 /**
@@ -106,12 +119,12 @@ gltfLoader.load(
         const water = gltf.scene.children.find(child => child.name === 'water')
         const windowLight = gltf.scene.children.find(child => child.name === 'windowLight')
 
-        console.log(portalLightMesh)
-        console.log(poleLightAMesh)
-        console.log(poleLightBMesh)
-        console.log(bakedMesh)
-        console.log(windowLight)
-        console.log(water)
+        // console.log(portalLightMesh)
+        // console.log(poleLightAMesh)
+        // console.log(poleLightBMesh)
+        // console.log(bakedMesh)
+        // console.log(windowLight)
+        // console.log(water)
 
         bakedMesh.material = bakedMaterial
         
@@ -119,7 +132,7 @@ gltfLoader.load(
         poleLightBMesh.material = poleLightMaterial
         portalLightMesh.material = portalLightMaterial
         water.material = waterMaterial
-        windowLight.material = portalLightMaterial
+        windowLight.material = windowMaterial
 
         scene.add(gltf.scene)
     }
@@ -168,9 +181,22 @@ const firefliesMaterial = new THREE.ShaderMaterial(
 )
 
 // Tweaks
-gui.add(firefliesMaterial.uniforms.uSize, 'value' ).min(20).max(500).step(1).name('Firefly Size')
+gui.add(firefliesMaterial.uniforms.uSize, 'value' ).min(20).max(500).step(1).name('Firefly size')
 gui.addColor(portalLightMaterial.uniforms.uColorStart, 'value').name('Portal start')
 gui.addColor(portalLightMaterial.uniforms.uColorEnd, 'value').name('Portal end')
+gui.add(waterMaterial.uniforms.uWaterSpeedMultiplier, 'value' ).min(0.1).max(20).step(0.1).name('Water speed')
+gui.add(waterMaterial.uniforms.uWaterPattern, 'value' ).min(0.0).max(20).step(1).name('Water pattern')
+gui.addColor(waterMaterial.uniforms.uWaterColorStart, 'value').name('Water start')
+gui.addColor(waterMaterial.uniforms.uWaterColorEnd, 'value').name('Water end')
+gui.addColor(windowMaterial.uniforms.uColor, 'value').name('Window color')
+gui
+    .addColor(debugObject, 'poleLightColor')
+    .onChange(() =>
+    {
+        poleLightMaterial.color = new THREE.Color(debugObject.poleLightColor)
+    })
+
+
 
 // Mesh
 const fireflies = new THREE.Points(firefliesGeometry, firefliesMaterial)
@@ -233,8 +259,8 @@ renderer.outputEncoding = THREE.sRGBEncoding
 
 debugObject.clearColor = '#292929'
 debugObject.fogColor = '#292929'
-debugObject.fogMinDistance = 1
-debugObject.fogMaxDistance = 15
+debugObject.fogMinDistance = 0
+debugObject.fogMaxDistance = 20
 const sceneFog = new THREE.Fog(debugObject.fogColor, debugObject.fogMinDistance, debugObject.fogMaxDistance)
 scene.fog = sceneFog
 
@@ -251,7 +277,8 @@ gui
     {
         sceneFog.color = new THREE.Color(debugObject.fogColor)
     })
-gui.add(sceneFog, 'near').min(-15).max(15).step(0.1).name('Fog coverage')
+gui.add(sceneFog, 'near').min(-15).max(25).step(1).name('Fog near')
+gui.add(sceneFog, 'far').min(-15).max(100).step(1).name('Fog far')
 
 /**
  * Animate
